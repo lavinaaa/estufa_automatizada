@@ -1,0 +1,1184 @@
+#include <DHT.h>
+#include <DHT_U.h>
+#include <DS3231.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,2,1,0,4,5,6,7,3, POSITIVE);
+
+DS3231 rtc(SDA, SCL); 
+ 
+#define botao1 47
+#define botao2 37
+#define botao3 33   
+
+Time top;
+
+boolean fbotao1 = 0;
+boolean fbotao2 = 0;
+boolean fbotao3 = 0;
+boolean fconfig = 0;
+
+const int vermelho = 8;
+const int verde = 10;
+const int azul = 13;
+
+#define rele1 3  //ventilador
+#define rele2 8   //resistencia
+int valvula1 = A0;
+
+int r=0;
+int b=0;
+int g=0;
+int soma = 0;
+int i;
+int menu1 = 1;
+int menu2 = 1;
+int horain = 8;
+int duracao = 10;
+int tela = 1;  
+int hora;
+
+int sensor1 = 4;
+int sensor2 = 2;
+int tempmax = 30;
+int tempmin = 20;
+float temp1;
+float temp2;
+float umi1;
+float umi2;
+float temperatura;
+float umidade;
+int irrig = 0;
+int irrigtemp = 0;
+
+DHT dht1(sensor1, DHT22);
+DHT dht2(sensor2, DHT22);
+
+boolean hasChanged = true;
+const int buttonPin = 10;    
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+ 
+void setup(){
+
+  rtc.begin();
+  lcd.begin(20, 4);
+  pinMode(buttonPin, INPUT);
+  lcd.backlight();
+  dht1.begin();
+  dht2.begin();
+  pinMode(botao1, INPUT); 
+  pinMode(botao2, INPUT); 
+  pinMode(botao3, INPUT); 
+  pinMode(vermelho, OUTPUT); 
+  pinMode(verde, OUTPUT); 
+  pinMode(azul, OUTPUT); 
+  pinMode(A0, OUTPUT); 
+  pinMode(rele1, OUTPUT);
+  pinMode(rele2, OUTPUT);
+}
+
+void loop(){
+
+  rtc.getTime();
+  hora = top.hour;
+  temp1= dht1.readTemperature();
+  temp2= dht2.readTemperature();
+  umi1 = dht1.readHumidity();
+  umi2 = dht2.readHumidity();
+  temperatura = (temp1+temp2)/2;
+  umidade = (umi1+umi2)/2;
+
+  if (hora == horain){
+    if(irrig==0){
+      do{
+        irrig=1;
+        digitalWrite(valvula1, LOW);
+        lcd.clear();
+        lcd.setCursor(0,0); 
+        lcd.print("hora: ");
+        lcd.print(rtc.getTimeStr());
+        lcd.setCursor(6,2); 
+        lcd.print("horario de");
+        lcd.setCursor(5,3); 
+        lcd.print("irrigacao");
+        i++;
+        delay(1000);
+        
+      }while (duracao>=i);
+    }
+  }  
+
+  if (temperatura>=tempmax){
+    while(temperatura>=tempmax){
+      if(irrigtemp==0){
+        digitalWrite(valvula1, LOW);
+        delay(5000);
+        digitalWrite(valvula1, HIGH);
+        irrigtemp=1;
+      }
+      digitalWrite(rele1, HIGH);
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(8,1); 
+      lcd.print("alta");
+      lcd.setCursor(3,2); 
+      lcd.print("resfriando.");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      delay(200);
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(8,1); 
+      lcd.print("alta");
+      lcd.setCursor(3,2); 
+      lcd.print("resfriando..");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      delay(200);
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(8,1); 
+      lcd.print("alta");
+      lcd.setCursor(3,2); 
+      lcd.print("resfriando...");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      delay(200);
+      temp1= dht1.readTemperature();
+      temp2= dht2.readTemperature();
+      temperatura = (temp1+temp2)/2;
+      if(temperatura<tempmax){
+        lcd.clear();
+        digitalWrite(rele1, LOW);
+        lcd.setCursor(4,1);
+        lcd.print("temperatura");
+        lcd.setCursor(6,2);
+        lcd.print("adequada");
+        irrigtemp=0;
+        delay(2000);
+      }
+  }
+  }
+  
+   if (temperatura<=tempmin){
+    while(temperatura<=tempmin){ 
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(7,1); 
+      lcd.print("baixa");
+      lcd.setCursor(4,2); 
+      lcd.print("aquecendo.");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(7,1); 
+      lcd.print("baixa");
+      lcd.setCursor(4,2); 
+      lcd.print("aquecendo..");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      lcd.clear();
+      lcd.setCursor(4,0); 
+      lcd.print("temperatura");
+      lcd.setCursor(7,1); 
+      lcd.print("baixa");
+      lcd.setCursor(4,2); 
+      lcd.print("aquecendo...");
+      lcd.setCursor(0,3); 
+      lcd.print("temperatura: ");
+      lcd.print(temperatura);
+      lcd.print((char)223);
+      digitalWrite(rele1, HIGH);
+      delay(2000);
+      digitalWrite(rele2, HIGH);
+      temp1= dht1.readTemperature();
+      temp2= dht2.readTemperature();
+      temperatura = (temp1+temp2)/2;
+      if(temperatura>tempmin){
+        lcd.clear();
+        digitalWrite(rele2, LOW);
+        delay(2000);
+        digitalWrite(rele1, LOW);
+        lcd.setCursor(4,1);
+        lcd.print("temperatura");
+        lcd.setCursor(6,2);
+        lcd.print("adequada");
+        delay(2000);
+      }
+  }
+   }
+  
+  if (hasChanged == true){
+   
+  switch(tela) {
+    
+    case 1:
+    {
+      tela1();
+    }
+    default:
+      tela1();
+   }  
+    
+    int reading = digitalRead(buttonPin);
+    if (reading != lastButtonState) {
+      lastDebounceTime = millis();
+    }
+ 
+if ((millis() - lastDebounceTime) > debounceDelay) {
+ 
+    if (reading != buttonState) {
+      buttonState = reading;
+ 
+      if (buttonState == HIGH) {
+        hasChanged = true;
+        tela++;
+      }
+      
+    } else {
+      hasChanged = false;
+    }
+  }
+  
+  lastButtonState = reading;
+  
+  if (tela > 1){
+    tela = 1;
+  }
+
+  }
+}
+ 
+void tela1(){
+
+   fbotao1=0;
+   fbotao2=0;
+   fbotao3=0;
+   lcd.clear();
+   delay(200);
+   do{
+
+     if(digitalRead(botao1)==1){
+      fbotao1 = 1;
+     }
+     if(digitalRead(botao2)==1){
+      fbotao2 = 1;
+     }
+     delay(200);
+     if(fbotao1 == 0x01){  
+       fbotao1 = 0x00;
+       menu1--;
+       if (menu1<1){
+         menu1 = 4;
+       }
+     }
+      
+     if(fbotao2 == 0x01){
+       fbotao2 = 0x00;
+       menu1++;
+       if (menu1>0x04){
+         menu1 = 0x01;
+       }
+     }
+        
+    switch(menu1){
+  
+      case 0x01:  
+         lcd.clear();
+         lcd.setCursor(0,0); 
+         lcd.print(">Configurar ");
+         lcd.print(rtc.getTimeStr());
+         lcd.setCursor(1,1);
+         lcd.print("Ver configuracoes");
+         lcd.setCursor(1,2); 
+         lcd.print("Ver dados");
+         lcd.setCursor(1,3);
+         lcd.print("Iluminacao");
+         if(digitalRead(botao3)==1){
+            fbotao3 = 0x01;
+         }
+         if(fbotao3 == 1){
+              fbotao3 = 0x00;
+              lcd.clear();
+              delay(200);
+              lcd.setCursor(4,0); 
+              lcd.print("IRRIGACAO");
+              lcd.setCursor(0,2);
+              lcd.print(">hora inicial: ");
+              lcd.print(horain);
+              lcd.print("h");
+              lcd.setCursor(1,3);
+              lcd.print("duracao: ");
+              lcd.print(duracao);
+              lcd.print("s");
+      
+              do{
+                       
+                if(digitalRead(botao1)==1){   
+                    fbotao1 = 0x01;
+                }
+                  
+                if(digitalRead(botao2)==1){
+                   fbotao2 = 0x01;
+                }
+        
+                delay(200);
+                
+                if(fbotao1==0x01){
+                  fbotao1 = 0x00;
+                  lcd.clear();
+                  delay(100);
+                  horain++;
+                  if(horain>24){
+                    horain = 1;
+                  }
+                  delay(500);
+                  if (digitalRead(botao1)==1){
+                    while(digitalRead(botao1)==1){
+                      lcd.clear();
+                      horain++;
+                      if(horain>24){
+                        horain = 1;
+                      }
+                      lcd.setCursor(4,0); 
+                      lcd.print("IRRIGACAO");
+                      lcd.setCursor(0,2);
+                      lcd.print(">hora inicial: ");
+                      lcd.print(horain);
+                      lcd.print("h");
+                      lcd.setCursor(1,3);
+                      lcd.print("duracao: ");   
+                      lcd.print(duracao);
+                      lcd.print("s");
+                      fconfig=1;
+                      delay(300);
+                      digitalRead(botao1);
+                    }
+                  }       
+                }
+                
+                if(fbotao2==0x01){
+                                                   
+                   fbotao2 = 0x00;
+                   lcd.clear(); 
+                   delay(100);              
+                   horain--;                
+                   if(horain<1){            
+                     horain = 24;           
+                   }      
+                   if (digitalRead(botao2)==1){
+                    while(digitalRead(botao2)==1){
+                      lcd.clear();
+                      horain--;
+                      if(horain<1){
+                        horain = 24;
+                      }
+                      lcd.setCursor(4,0); 
+                      lcd.print("IRRIGACAO");
+                      lcd.setCursor(0,2);
+                      lcd.print(">hora inicial: ");
+                      lcd.print(horain);
+                      lcd.print("h");
+                      lcd.setCursor(1,3);
+                      lcd.print("duracao: ");   
+                      lcd.print(duracao);
+                      lcd.print("s");
+                      delay(300);
+                      digitalRead(botao2);
+                    }
+                  }                                                       
+                }                        
+                delay(300);
+                lcd.setCursor(4,0); 
+                lcd.print("IRRIGACAO");
+                lcd.setCursor(0,2);
+                lcd.print(">hora inicial: ");
+                lcd.print(horain);
+                lcd.print("h");
+                lcd.setCursor(1,3);
+                lcd.print("duracao: ");   
+                lcd.print(duracao);
+                lcd.print("s");
+                fbotao3 = digitalRead(botao3);
+              
+              }while (fbotao3 != 1);
+
+                    fbotao3 = 0x00;
+                    lcd.clear();
+                    delay(200);
+                    lcd.setCursor(0,0); 
+                    lcd.print("NOVA IRRIGACAO");
+                    lcd.setCursor(1,2);
+                    lcd.print("hora inicial: ");
+                    lcd.print(horain);
+                    lcd.print("h");
+                    lcd.setCursor(0,3);
+                    lcd.print(">duracao: ");
+                    lcd.print(duracao);
+                    lcd.print("s");
+            
+                    do{
+                             
+                      if(digitalRead(botao1)==1){
+                          fbotao1 = 0x01;
+                      }
+                        
+                      if(digitalRead(botao2)==1){
+                         fbotao2 = 0x01;
+                      }
+              
+                      delay(200);
+                      
+                      if(fbotao1==0x01){
+                      
+                        fbotao1 = 0x00;
+                        lcd.clear();
+                        delay(100);
+                        duracao++;
+                        if(duracao>botao2){
+                          duracao = 1;
+                        }
+                        if (digitalRead(botao1)==1){
+                          while(digitalRead(botao1)==1){
+                            lcd.clear();
+                            duracao++;
+                            if(duracao>botao2){
+                              duracao = 1;
+                            }
+                            lcd.setCursor(0,0); 
+                            lcd.print("NOVA IRRIGACAO");
+                            lcd.setCursor(1,2);
+                            lcd.print("hora inicial: ");
+                            lcd.print(horain);
+                            lcd.print("h");
+                            lcd.setCursor(0,3);
+                            lcd.print(">duracao: ");   
+                            lcd.print(duracao);
+                            lcd.print("s");
+                            delay(300);
+                            digitalRead(botao2);
+                          }
+                        }          
+                      }
+                      
+                      if(fbotao2==0x01){
+                                                         
+                         fbotao2 = 0x00;
+                         lcd.clear(); 
+                         delay(100);              
+                         duracao--;                
+                         if(duracao<1){            
+                           duracao = botao2;           
+                         }      
+                         if (digitalRead(botao2)==1){
+                          while(digitalRead(botao2)==1){
+                            lcd.clear();
+                            duracao--;
+                            if(duracao<1){            
+                              duracao = 120;           
+                            } 
+                            lcd.setCursor(0,0); 
+                            lcd.print("NOVA IRRIGACAO");
+                            lcd.setCursor(1,2);
+                            lcd.print("hora inicial: ");
+                            lcd.print(horain);
+                            lcd.print("h");
+                            lcd.setCursor(0,3);
+                            lcd.print(">duracao: ");   
+                            lcd.print(duracao);
+                            lcd.print("s");
+                            delay(300);
+                            digitalRead(botao2);
+                          }
+                        }                       
+                                                 
+                      }                        
+                        
+                      
+                      lcd.setCursor(0,0); 
+                      lcd.print("NOVA IRRIGACAO");
+                      lcd.setCursor(1,2);
+                      lcd.print("hora inicial: ");
+                      lcd.print(horain);
+                      lcd.print("h");
+                      lcd.setCursor(0,3);
+                      lcd.print(">duracao: ");   
+                      lcd.print(duracao);
+                      lcd.print("s");
+                      fbotao3 = digitalRead(botao3);
+                      fconfig = 1;
+                    
+                    }while (fbotao3 != 1);
+
+                   do{
+                        if (tempmin>tempmax){
+                          lcd.clear();
+                          lcd.setCursor(6,0); 
+                          lcd.print("valores");
+                          lcd.setCursor(3,1); 
+                          lcd.print("contraditorios");
+                          lcd.setCursor(5,2); 
+                          lcd.print("configure");
+                          lcd.setCursor(5,3); 
+                          lcd.print("novamente");
+                          delay(2000);
+                        }
+                        
+                        fbotao3 = 0x00;
+                        lcd.clear();
+                        delay(200);
+                        lcd.setCursor(0,0); 
+                        lcd.print("NOVA TEMPERATURA");
+                        lcd.setCursor(0,2);
+                        lcd.print(">Temp min: ");
+                        lcd.print(tempmin);
+                        lcd.print((char)223);
+                        lcd.setCursor(1,3);
+                        lcd.print("Temp max: ");
+                        lcd.print(tempmax);
+                        lcd.print((char)223);
+                
+                        do{
+                                 
+                          if(digitalRead(botao1)==1){   // --------------------------------------------------LEITURA----------------------------------------------------------------------------
+                             fbotao1 = 0x01;
+                          }
+                            
+                          if(digitalRead(botao2)==1){
+                             fbotao2 = 0x01;
+                          }
+                  
+                          delay(200);
+                          
+                          if(fbotao1==0x01){
+                          
+                            fbotao1 = 0x00;
+                            lcd.clear();
+                            delay(100);
+                            tempmin++;
+                            if(tempmin>30){
+                              tempmin = 0;
+                            }
+                            delay(500);
+                            if (digitalRead(botao1)==1){
+                              while(digitalRead(botao1)==1){
+                                lcd.clear();
+                                tempmin++;
+                                if(tempmin>30){
+                                  tempmin = 0;
+                                }
+                                lcd.setCursor(0,0); 
+                                lcd.print("NOVA TEMPERATURA");
+                                lcd.setCursor(0,2);
+                                lcd.print(">Temp min: ");
+                                lcd.print(tempmin);
+                                lcd.print((char)223);
+                                lcd.setCursor(1,3);
+                                lcd.print("Temp max: ");   
+                                lcd.print(tempmax);
+                                lcd.print((char)223);
+                                delay(300);
+                                digitalRead(botao1);
+                              }
+                            }   
+                              
+                          }
+                          
+                          if(fbotao2==0x01){
+                                                             
+                             fbotao2 = 0x00;
+                             lcd.clear(); 
+                             delay(100);              
+                             tempmin--;                
+                             if(tempmin<0){            
+                               tempmin = 30;           
+                             }      
+                             if (digitalRead(botao2)==1){
+                              while(digitalRead(botao2)==1){
+                                lcd.clear();
+                                tempmin--;
+                                if(tempmin<0){
+                                  tempmin = 30;
+                                }
+                                lcd.setCursor(0,0); 
+                                lcd.print("NOVA TEMPERATURA");
+                                lcd.setCursor(0,2);
+                                lcd.print(">Temp min: ");
+                                lcd.print(tempmin);
+                                lcd.print((char)223);
+                                lcd.setCursor(1,3);
+                                lcd.print("Temp max: ");   
+                                lcd.print(tempmax);
+                                lcd.print((char)223);
+                                delay(300);
+                                digitalRead(botao2);
+                              }
+                            }                  
+                                                     
+                          }                         // -----------------------------------------------------LEITURA---------------------------------------------------------------------------
+                          delay(300);   
+                          lcd.setCursor(0,0); 
+                          lcd.print("NOVA TEMPERATURA");
+                          lcd.setCursor(0,2);
+                          lcd.print(">Temp min: ");
+                          lcd.print(tempmin);
+                          lcd.print((char)223);
+                          lcd.setCursor(1,3);
+                          lcd.print("Temp max: ");   
+                          lcd.print(tempmax);
+                          lcd.print((char)223);
+                          fbotao3 = digitalRead(botao3);
+                        
+                        }while (fbotao3 != 1);
+   
+                       
+                        fbotao3 = 0x00;
+                        lcd.clear();
+                        delay(200);
+                        lcd.setCursor(0,0); 
+                        lcd.print("NOVA TEMPERATURA");
+                        lcd.setCursor(1,2);
+                        lcd.print("Temp min: ");
+                        lcd.print(tempmin);
+                        lcd.print((char)223);
+                        lcd.setCursor(0,3);
+                        lcd.print(">Temp max: ");
+                        lcd.print(tempmax);
+                        lcd.print((char)223);
+                
+                        do{
+                                 
+                          if(digitalRead(botao1)==1){   // --------------------------------------------------LEITURA----------------------------------------------------------------------------
+                              fbotao1 = 0x01;
+                          }
+                            
+                          if(digitalRead(botao2)==1){
+                             fbotao2 = 0x01;
+                          }
+                  
+                          delay(200);
+                          
+                          if(fbotao1==0x01){
+                          
+                            fbotao1 = 0x00;
+                            lcd.clear();
+                            delay(100);
+                            tempmax++;
+                            if(tempmax>40){
+                              tempmax = 0;
+                            }
+                            delay(500);
+                            
+                            if (digitalRead(botao1)==1){
+                              while(digitalRead(botao1)==1){
+                                lcd.clear();
+                                tempmax++;
+                                if(tempmax>40){
+                                  tempmax = 0;
+                                }
+                                
+                                lcd.setCursor(0,0); 
+                                lcd.print("NOVA TEMPERATURA");
+                                lcd.setCursor(1,2);
+                                lcd.print("Temp min: ");
+                                lcd.print(tempmin);
+                                lcd.print((char)223);
+                                lcd.setCursor(0,3);
+                                lcd.print(">Temp max: ");   
+                                lcd.print(tempmax);
+                                lcd.print((char)223);
+                                delay(300);
+                                digitalRead(botao1);
+                              }
+                            }
+                            
+                              
+                          }
+                          
+                          if(fbotao2==0x01){
+                                                             
+                             fbotao2 = 0x00;
+                             lcd.clear(); 
+                             delay(100);              
+                             tempmax--;                
+                             if(tempmax<0){            
+                               tempmax = 40;           
+                             }      
+                             
+                             if (digitalRead(botao2)==1){
+                              while(digitalRead(botao2)==1){
+                                lcd.clear();
+                                tempmax--;
+                                if(tempmax<0){
+                                  tempmax = 40;
+                                }
+                                lcd.setCursor(0,0); 
+                                lcd.print("NOVA TEMPERATURA");
+                                lcd.setCursor(1,2);
+                                lcd.print("Temp min: ");
+                                lcd.print(tempmin);
+                                lcd.print((char)223);
+                                lcd.setCursor(0,3);
+                                lcd.print(">Temp max: ");   
+                                lcd.print(tempmax);
+                                lcd.print((char)223);
+                                delay(300);
+                                digitalRead(botao2);
+                              }
+                            }                  
+                                                     
+                          }                        
+                          
+                          lcd.setCursor(0,0); 
+                          lcd.print("NOVA TEMPERATURA");
+                          lcd.setCursor(1,2);
+                          lcd.print("Temp min: ");
+                          lcd.print(tempmin);
+                          lcd.print((char)223);
+                          lcd.setCursor(0,3);
+                          lcd.print(">Temp max: ");   
+                          lcd.print(tempmax);
+                          lcd.print((char)223);
+                          fbotao3 = digitalRead(botao3);
+                        
+                        }while (fbotao3 != 1);
+                  }while(tempmin>tempmax);
+                  lcd.clear();
+                  lcd.setCursor(4,1);
+                  lcd.print("CONFIGURACAO"); 
+                  lcd.setCursor(5,2);
+                  lcd.print("REALIZADA");     
+                  delay(2000);
+                  lcd.clear();
+                  tela=0;
+         }       
+         delay(100); 
+      break;
+  
+      case 0x02:      
+         lcd.clear();
+         lcd.setCursor(1,0); 
+         lcd.print("Configurar ");
+         lcd.print(rtc.getTimeStr());
+         lcd.setCursor(0,1);
+         lcd.print(">Ver configuracoes");
+         lcd.setCursor(1,2); 
+         lcd.print("Ver dados");
+         lcd.setCursor(1,3);
+         lcd.print("Iluminacao");
+         if(digitalRead(botao3)==1){
+            fbotao3 = 0x01;
+         }
+         delay(100);
+         if(fbotao3 == 1){
+                    if (fconfig == 0){
+                        lcd.clear();
+                        lcd.setCursor(6,0); 
+                        lcd.print("nenhuma");
+                        lcd.setCursor(4,1);
+                        lcd.print("configuracao");
+                        lcd.setCursor(5,2);
+                        lcd.print("realizada");
+                        delay(1000);
+                        tela = 0;
+                    }
+                    
+                    else if (fconfig == 1){
+                      fbotao3=0;
+                        lcd.clear();
+                        lcd.setCursor(1,0); 
+                        lcd.print("IRRIGACAO ATUAL");
+                        lcd.setCursor(0,2);
+                        lcd.print("hora inicial: ");
+                        lcd.print(horain);
+                        lcd.print("h");
+                        lcd.setCursor(0,3);
+                        lcd.print("duracao: ");
+                        lcd.print(duracao);
+                        lcd.print("s");
+                        fbotao3=digitalRead(botao3);
+                        while (fbotao3=0){
+                          delay(500);
+                          fbotao3=digitalRead(botao3);
+                        }
+                        delay(2000);
+                        lcd.clear();
+                        lcd.setCursor(1,0); 
+                        lcd.print("TEMPERATURA");
+                        lcd.setCursor(0,2);
+                        lcd.print("minima:: ");
+                        lcd.print(tempmin);
+                        lcd.print((char)223);
+                        lcd.setCursor(0,3);
+                        lcd.print("maxima: ");
+                        lcd.print(tempmax);
+                        lcd.print((char)223);
+                        delay(2000);
+                        tela=0;
+                    }
+         }       
+      break;
+  
+      case 0x03:     
+         lcd.clear();
+         lcd.setCursor(1,0); 
+         lcd.print("Configurar ");
+         lcd.print(rtc.getTimeStr());
+         lcd.setCursor(1,1);
+         lcd.print("Ver configuracoes");
+         lcd.setCursor(0,2); 
+         lcd.print(">Ver dados");
+         lcd.setCursor(1,3);
+         lcd.print("Iluminacao");
+         if(digitalRead(botao3)==1){
+            fbotao3 = 0x01;
+         }
+         delay(100);
+         
+          while (fbotao3 == 1){
+
+              fbotao3=0;
+              lcd.clear();
+              temp1 = dht1.readTemperature();
+              temp2 = dht2.readTemperature();
+              umi1 = dht1.readHumidity();
+              umi2 = dht2.readHumidity();
+              temperatura = (temp1 + temp2) / 2;
+              umidade = (umi1 + umi2) / 2;
+              lcd.setCursor(0, 1);
+              lcd.print("Temperatura: ");
+              lcd.print(temperatura);
+              lcd.print((char)223);
+              lcd.setCursor(0, 2);
+              lcd.print("Umidade: ");
+              lcd.print(umidade);
+              lcd.print("%");
+              if(digitalRead(botao3)==1){
+                  fbotao3 = 1;
+               }
+              delay(500);
+              
+         }
+         
+         tela = 0;         
+      break;
+
+      case 0x04:     
+         lcd.clear();
+         lcd.setCursor(1,0); 
+         lcd.print("Configurar ");
+         lcd.print(rtc.getTimeStr());
+         lcd.setCursor(1,1);
+         lcd.print("Ver configuracoes");
+         lcd.setCursor(1,2); 
+         lcd.print("Ver dados");
+         lcd.setCursor(0,3);
+         lcd.print(">Iluminacao");
+         if(digitalRead(botao3)==1){
+            fbotao3 = 0x01;
+         }
+         delay(100);
+         if(fbotao3 == 1){
+          fbotao3=0;
+          lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(">Vermelho   Roxo");
+            lcd.setCursor(1,1);
+            lcd.print("Azul       Branco");
+            lcd.setCursor(1,2);
+            lcd.print("Verde      Desligar");
+            lcd.setCursor(1,3);
+            lcd.print("Amarelo    Menu");  
+            delay(500);
+            lcd.clear();
+               do{
+            
+                 if(digitalRead(botao1)==1){
+                  fbotao1 = 0x01;
+                 }
+                 if(digitalRead(botao2)==1){
+                  fbotao2 = 0x01;
+                 }
+                 delay(200);
+                 if(fbotao1 == 0x01){  
+                   fbotao1 = 0x00;
+                   menu2--;
+                   if (menu2<0x01){
+                     menu2 = 0x08;
+                   }
+                 }
+                  
+                 if(fbotao2 == 0x01){
+                   fbotao2 = 0x00;
+                   menu2++;
+                   if (menu2>0x08){
+                     menu2 = 0x01;
+                   }
+                 }
+                    
+                switch(menu2){
+              
+                  case 0x01:  
+                     lcd.clear();
+                     lcd.setCursor(0,0);
+                    lcd.setCursor(0,0);
+                    lcd.print(">Vermelho   Roxo");
+                    lcd.setCursor(1,1);
+                    lcd.print("Azul       Branco");
+                    lcd.setCursor(1,2);
+                    lcd.print("Verde      Desligar");
+                    lcd.setCursor(1,3);
+                    lcd.print("Amarelo    Menu");  
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(6,1); 
+                          lcd.print("VERMELHO");
+                          analogWrite(vermelho, 255);
+                          analogWrite(azul, 0);
+                          analogWrite(verde, 0);
+                          delay(2000);
+                          lcd.clear();
+                          tela=0;
+                      }
+                   break;
+                      case 0x02:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(0,1);
+                      lcd.print(">Azul       Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde      Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo    Menu");  
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(8,1); 
+                          lcd.print("AZUL");
+                          analogWrite(azul, 255);
+                          analogWrite(vermelho, 0);
+                          analogWrite(verde, 0);
+                          delay(2000);
+                          lcd.clear();
+                          tela=0;
+                     }
+                 break;
+                 case 0x03:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul       Branco");
+                      lcd.setCursor(0,2);
+                      lcd.print(">Verde      Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo    Menu");  
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(8,1); 
+                          lcd.print("VERDE");
+                          analogWrite(vermelho, 0);
+                          analogWrite(azul, 0);
+                          analogWrite(verde, 255);
+                          delay(2000);
+                          lcd.clear();
+                
+                     }
+                     break;
+                     case 0x04:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul       Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde      Desligar");
+                      lcd.setCursor(0,3);
+                      lcd.print(">Amarelo    Menu");   
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(7,1); 
+                          lcd.print("AMARELO");
+                          analogWrite(vermelho, 225);
+                          analogWrite(verde, 225);
+                          analogWrite(azul, 20);
+                          delay(2000);
+                          lcd.clear();
+                          tela=0;
+                     }     
+                   break;
+                   case 0x05:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho  >Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul       Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde      Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo    Menu");   
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(7,1); 
+                          lcd.print("ROXO");
+                          analogWrite(vermelho, 255);
+                          analogWrite(azul, 255);
+                          analogWrite(verde, 0);
+                          delay(2000);
+                          lcd.clear();
+                          tela=0;
+                     }     
+                   break;
+                   case 0x06:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul      >Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde      Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo    Menu");   
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(7,1); 
+                          lcd.print("BRANCO");
+                          analogWrite(vermelho, 255);
+                          analogWrite(verde, 255);
+                          analogWrite(azul, 255);
+                          delay(2000);
+                          lcd.clear();
+                          tela=0;
+                     }     
+                     
+                   break;
+                   case 0x07:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul       Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde     >Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo    Menu");   
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          fbotao3 = 0x00;
+                          lcd.clear();
+                          delay(200);
+                          lcd.setCursor(7,1); 
+                          analogWrite(vermelho, 0);
+                          analogWrite(verde, 0);
+                          analogWrite(azul, 0);
+                     }
+                         
+   /*if (digitalRead(botao3)==1)
+    fbotao3=1;
+                          }
+   if (fbotao3==1){  
+                          lcd.clear();
+                          tela1();
+                          */
+                          
+                     
+                   break;
+                   case 0x08:  
+                     lcd.clear();
+                     lcd.setCursor(1,0);
+                      lcd.print("Vermelho   Roxo");
+                      lcd.setCursor(1,1);
+                      lcd.print("Azul       Branco");
+                      lcd.setCursor(1,2);
+                      lcd.print("Verde      Desligar");
+                      lcd.setCursor(1,3);
+                      lcd.print("Amarelo   >Menu");   
+                     if(digitalRead(botao3)==1){
+                        fbotao3 = 0x01;
+                     }
+                     delay(100);
+                     if(fbotao3 == 1){
+                          lcd.clear();
+                          delay(1000);
+                          tela1();
+                     }     
+                     
+                   break;
+                     
+                   fbotao3 = digitalRead(botao3);
+                   delay(100);
+                
+                   }
+               
+
+     
+  
+    }while(fbotao3==0);
+  
+      fbotao3 = digitalRead(botao3);
+      delay(100);
+       break;
+    }     
+  }
+    
+}  while(fbotao3==0);
+}
